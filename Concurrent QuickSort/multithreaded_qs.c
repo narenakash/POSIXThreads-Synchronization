@@ -17,7 +17,7 @@ typedef struct arg_struct {
 
 void *quickSortThread(void *args);
 void insertionSort(int *array, int start, int end);
-int partition(int *array, int start, int end, int pivot);
+int partition(int *array, int low, int high);
 void quickSort(int *array, int start, int end);
 
 void insertionSort(int *array, int start, int end) {
@@ -32,20 +32,17 @@ void insertionSort(int *array, int start, int end) {
         }
 }
 
-int partition(int *array, int start, int end, int pivot) {
-
-    int index = start, pvalue = array[pivot];
-    swap(array[pivot], array[end]);
-    
-
-    for(int i = start; i < end; i++) {
-        if(array[i] <= pvalue) {
-            swap(array[i], array[index++]);
+int partition(int *array, int low, int high) {
+ int pivot = array[high];
+    int i = low-1;
+    for(int j=low;j<=high-1;j++){
+        if(array[j]<pivot){
+            i++;
+            swap(array[i],array[j]);
         }
     }
-
-    swap(array[index], array[end]);
-    return index;
+    swap(array[i+1],array[high]);
+    return i+1;
 }
 
 void quickSort(int *array, int start, int end) {
@@ -53,17 +50,24 @@ void quickSort(int *array, int start, int end) {
         return;
     }
 
-    int pivotIndex = start + (end - start)/2;
-    pivotIndex = partition(array, start, end, pivotIndex);
+    int pivotIndex = partition(array, start, end);
 
-    struct arg_struct *args;
-    args->array = array;
-    args->start = start;
-    args->end = end;
+    struct arg_struct args1;
+    args1.array = array;
+    args1.start = start;
+    args1.end = pivotIndex-1;
 
-    pthread_t thread;
-    pthread_create(&thread, NULL, quickSortThread, (void *) &args);
-    quickSort(array, pivotIndex + 1, end);
+
+    struct arg_struct args2;
+    args2.array = array;
+    args2.start = pivotIndex+1;
+    args2.end = end;
+
+    pthread_t thread1,thread2;
+    pthread_create(&thread1, NULL, quickSortThread, (void *) &args1);
+    pthread_create(&thread2, NULL, quickSortThread, (void *) &args2);
+    pthread_join(thread1,NULL);
+    pthread_join(thread2,NULL);
 }
 
 void *quickSortThread(void *args) {
@@ -74,7 +78,7 @@ void *quickSortThread(void *args) {
 
 int main(void) {
     int n = 0, *array;
-    array = (int *) malloc(1024 * sizeof(int));
+    array = (int *) malloc(100000 * sizeof(int));
 
     scanf("%d", &n);
 
